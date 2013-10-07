@@ -51,6 +51,7 @@ CBPeripheralManager* peripheralManager;
     CLLocationManager *manager = [[CLLocationManager alloc] init];
     [manager setDelegate:self];
     [manager startMonitoringForRegion:beaconRegion];
+    NSLog(@"Started looking for beacon.");
     
 }
 
@@ -62,6 +63,7 @@ CBPeripheralManager* peripheralManager;
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral
 {
     if (peripheral.state != CBPeripheralManagerStatePoweredOn) {
+        NSLog(@"Bluetooth not powered on");
         return;
     }
     
@@ -70,6 +72,7 @@ CBPeripheralManager* peripheralManager;
     
     //Start advertising
     [_manager startAdvertising:payload];
+    NSLog(@"Started adertising beacon.");
 }
 
 #pragma mark - CLLocationManagerDelegate Methods
@@ -77,6 +80,8 @@ CBPeripheralManager* peripheralManager;
 //Callback when the iBeacon is in range
 - (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region
 {
+    NSLog(@"Beacon is in range.");
+    
     if ([region isKindOfClass:[CLBeaconRegion class]]) {
         [manager startRangingBeaconsInRegion:(CLBeaconRegion *)region];
     }
@@ -85,6 +90,8 @@ CBPeripheralManager* peripheralManager;
 //Callback when the iBeacon has left range
 - (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region
 {
+    NSLog(@"Beacon exited range.");
+    
     if ([region isKindOfClass:[CLBeaconRegion class]]) {
         [manager stopRangingBeaconsInRegion:(CLBeaconRegion *)region];
     }
