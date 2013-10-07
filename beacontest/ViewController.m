@@ -12,6 +12,9 @@
 
 @interface ViewController ()
 
+@property (nonatomic, retain) CLBeaconRegion *beaconRegion;
+@property (nonatomic, retain) CBPeripheralManager *manager;
+
 @end
 
 @implementation ViewController
@@ -22,61 +25,90 @@ CBPeripheralManager* peripheralManager;
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
+    
 }
 
 - (IBAction)hitbutton:(id)sender {
+
+    /* Initialization */
+    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@"2D341E70-A4F8-47BE-9D61-1B282356ECD0"];
+    NSString *identifier = @"MyBeacon";
+    //Construct the region
+    self.beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
+    self.manager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
+
+}
+
+
+- (IBAction)locateBeacon:(id)sender {
     
-    
-    NSUUID *proximityUUID = [[NSUUID alloc]
-                             initWithUUIDString:@"1CB7CA53-5A56-4555-BA0E-788CB984BF33"];
-    
-    // Create the beacon region.
-    CLBeaconRegion *beaconRegion = [[CLBeaconRegion alloc]
-                                    initWithProximityUUID:proximityUUID
-                                    identifier:@"com.getsignedin.home"];
-    
-    // Create a dictionary of advertisement data.
-    NSDictionary *beaconPeripheralData =
-    [beaconRegion peripheralDataWithMeasuredPower:nil];
-    
-    // Create the peripheral manager.
-    peripheralManager = [[CBPeripheralManager alloc]
-                                              initWithDelegate:self queue:nil];
-    
-    
-    if (peripheralManager.state == CBPeripheralManagerStatePoweredOn) {
-        // Start advertising your beacon's data.
-        [peripheralManager startAdvertising:beaconPeripheralData];
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"iBeacon is running"
-                                                        message:@"Your device is broadcasting an iBeacon"
-                                                       delegate:nil
-                                              cancelButtonTitle:@"OK"
-                                              otherButtonTitles:nil];
-        [alert show];
-    }
-    else {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"iBeacon is not running"
-                                                        message:@"Your device can not broadcast an iBeacon.  Check that bluetooth is powered on"
-                                                       delegate:nil
-                                              cancelButtonTitle:@"OK"
-                                              otherButtonTitles:nil];
-        [alert show];
-        
-    }
+    /* Initialization */
+    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@"2D341E70-A4F8-47BE-9D61-1B282356ECD0"];
+    NSString *identifier = @"MyBeacon";
+    //Construct the region
+    CLBeaconRegion *beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
+    //Start monitoring
+    CLLocationManager *manager = [[CLLocationManager alloc] init];
+    [manager setDelegate:self];
+    [manager startMonitoringForRegion:beaconRegion];
     
 }
 
-- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
-    // Opt out from any other state
+
+
+#pragma mark - CBPeripheralManagerDelegate Methods
+
+//CBPeripheralManager callback once the manager is ready to accept commands
+- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral
+{
     if (peripheral.state != CBPeripheralManagerStatePoweredOn) {
         return;
     }
     
-    // We're in CBPeripheralManagerStatePoweredOn state...
-    NSLog(@"self.peripheralManager powered on.");
+    //Passing nil will use the device default power
+    NSDictionary *payload = [_beaconRegion peripheralDataWithMeasuredPower:nil];
     
+    //Start advertising
+    [_manager startAdvertising:payload];
 }
 
+#pragma mark - CLLocationManagerDelegate Methods
+
+//Callback when the iBeacon is in range
+- (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region
+{
+    if ([region isKindOfClass:[CLBeaconRegion class]]) {
+        [manager startRangingBeaconsInRegion:(CLBeaconRegion *)region];
+    }
+}
+
+//Callback when the iBeacon has left range
+- (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region
+{
+    if ([region isKindOfClass:[CLBeaconRegion class]]) {
+        [manager stopRangingBeaconsInRegion:(CLBeaconRegion *)region];
+    }
+}
+
+//Callback when ranging is successful
+- (void)locationManager:(CLLocationManager *)manager didRangeBeacons:(NSArray *)beacons
+               inRegion:(CLBeaconRegion *)region
+{
+    //Check if we have moved closer or farther away from the iBeacon…
+    CLBeacon *beacon = [beacons objectAtIndex:0];
+    
+    switch (beacon.proximity) {
+        case CLProximityImmediate:
+            NSLog(@"You're Sitting on it!");
+            break;
+        case CLProximityNear:
+            NSLog(@"Getting Warmer!");
+            break;
+        default:
+            NSLog(@"It's around here somewhere!");
+            break;
+    }
+}
 
 
 - (void)didReceiveMemoryWarning
