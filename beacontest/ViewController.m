@@ -14,6 +14,7 @@
 
 @property (nonatomic, retain) CLBeaconRegion *beaconRegion;
 @property (nonatomic, retain) CBPeripheralManager *manager;
+@property (nonatomic, retain) CLLocationManager *locationManager;
 
 @end
 
@@ -26,32 +27,35 @@ CBPeripheralManager* peripheralManager;
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
     
-}
-
-- (IBAction)hitbutton:(id)sender {
-
     /* Initialization */
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@"2D341E70-A4F8-47BE-9D61-1B282356ECD0"];
     NSString *identifier = @"MyBeacon";
     //Construct the region
-    self.beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
-    self.manager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
+    _beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
+    [_activityIndicator stopAnimating];
+    _statusLabel.hidden = true;
+}
+
+- (IBAction)hitbutton:(id)sender {
+
+    //Start broadcasting the beacon
+    _manager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
+    
 
 }
 
 
 - (IBAction)locateBeacon:(id)sender {
     
-    /* Initialization */
-    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@"2D341E70-A4F8-47BE-9D61-1B282356ECD0"];
-    NSString *identifier = @"MyBeacon";
-    //Construct the region
-    CLBeaconRegion *beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
     //Start monitoring
-    CLLocationManager *manager = [[CLLocationManager alloc] init];
-    [manager setDelegate:self];
-    [manager startMonitoringForRegion:beaconRegion];
-    NSLog(@"Started looking for beacon.");
+    _locationManager = [[CLLocationManager alloc] init];
+    [_locationManager setDelegate:self];
+    [_locationManager startMonitoringForRegion:self.beaconRegion];
+    
+    [_activityIndicator startAnimating];
+    
+    _statusLabel.text = @"Started looking for beacon.";
+    _statusLabel.hidden = false;
     
 }
 
@@ -63,7 +67,8 @@ CBPeripheralManager* peripheralManager;
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral
 {
     if (peripheral.state != CBPeripheralManagerStatePoweredOn) {
-        NSLog(@"Bluetooth not powered on");
+        _statusLabel.text = @"Bluetooth not powered on.";
+        _statusLabel.hidden = false;
         return;
     }
     
@@ -72,7 +77,10 @@ CBPeripheralManager* peripheralManager;
     
     //Start advertising
     [_manager startAdvertising:payload];
-    NSLog(@"Started adertising beacon.");
+    
+    [_activityIndicator startAnimating];
+    _statusLabel.text = @"Broadcasting beacon";
+    _statusLabel.hidden = false;
 }
 
 #pragma mark - CLLocationManagerDelegate Methods
@@ -80,9 +88,9 @@ CBPeripheralManager* peripheralManager;
 //Callback when the iBeacon is in range
 - (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region
 {
-    NSLog(@"Beacon is in range.");
-    
     if ([region isKindOfClass:[CLBeaconRegion class]]) {
+        _statusLabel.text = @"Beacon is in range.";
+        _statusLabel.hidden = false;
         [manager startRangingBeaconsInRegion:(CLBeaconRegion *)region];
     }
 }
@@ -90,9 +98,10 @@ CBPeripheralManager* peripheralManager;
 //Callback when the iBeacon has left range
 - (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region
 {
-    NSLog(@"Beacon exited range.");
     
     if ([region isKindOfClass:[CLBeaconRegion class]]) {
+        _statusLabel.text = @"Beacon exited range.";
+        _statusLabel.hidden = false;
         [manager stopRangingBeaconsInRegion:(CLBeaconRegion *)region];
     }
 }
@@ -106,13 +115,13 @@ CBPeripheralManager* peripheralManager;
     
     switch (beacon.proximity) {
         case CLProximityImmediate:
-            NSLog(@"You're Sitting on it!");
+            _statusLabel.text = @"You're Sitting on it!";
             break;
         case CLProximityNear:
-            NSLog(@"Getting Warmer!");
+            _statusLabel.text = @"Getting Warmer!";
             break;
         default:
-            NSLog(@"It's around here somewhere!");
+            _statusLabel.text = @"It's around here somewhere!";
             break;
     }
 }
