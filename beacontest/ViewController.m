@@ -29,7 +29,7 @@ CBPeripheralManager* peripheralManager;
     
     /* Initialization */
     NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:@"2D341E70-A4F8-47BE-9D61-1B282356ECD0"];
-    NSString *identifier = @"MyBeacon";
+    NSString *identifier = @"com.beacontest.MyBeacon";
     //Construct the region
     _beaconRegion = [[CLBeaconRegion alloc] initWithProximityUUID:uuid identifier:identifier];
     [_activityIndicator stopAnimating];
@@ -57,8 +57,14 @@ CBPeripheralManager* peripheralManager;
     _statusLabel.text = @"Started looking for beacon.";
     _statusLabel.hidden = false;
     
+    //force the region to change
+    [self locationManager:self.locationManager didStartMonitoringForRegion:self.beaconRegion];
 }
 
+//forcing region change
+- (void)locationManager:(CLLocationManager *)manager didStartMonitoringForRegion:(CLRegion *)region {
+    [self.locationManager startRangingBeaconsInRegion:self.beaconRegion];
+}
 
 
 #pragma mark - CBPeripheralManagerDelegate Methods
@@ -111,14 +117,21 @@ CBPeripheralManager* peripheralManager;
                inRegion:(CLBeaconRegion *)region
 {
     //Check if we have moved closer or farther away from the iBeacon…
-    CLBeacon *beacon = [beacons objectAtIndex:0];
+    CLBeacon *beacon = [[CLBeacon alloc] init];
+    beacon = [beacons lastObject];
     
     switch (beacon.proximity) {
         case CLProximityImmediate:
-            _statusLabel.text = @"You're Sitting on it!";
+            _statusLabel.text = @"Immediate!";
             break;
         case CLProximityNear:
-            _statusLabel.text = @"Getting Warmer!";
+            _statusLabel.text = @"Near!";
+            break;
+        case CLProximityFar:
+            _statusLabel.text = @"Far!";
+            break;
+        case CLProximityUnknown:
+            _statusLabel.text = @"Can't see anything yet!";
             break;
         default:
             _statusLabel.text = @"It's around here somewhere!";
