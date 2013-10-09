@@ -108,6 +108,7 @@ CBPeripheralManager* peripheralManager;
     if ([region isKindOfClass:[CLBeaconRegion class]]) {
         _statusLabel.text = @"Beacon exited range.";
         _statusLabel.hidden = false;
+       
         [manager stopRangingBeaconsInRegion:(CLBeaconRegion *)region];
     }
 }
